@@ -1,0 +1,116 @@
+@font-face {
+  font-family: "TT Interphases Pro Regular";
+  src: url("assets/fonts/TTInterphasesPro-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "TT Interphases Pro DemiBold";
+  src: url("assets/fonts/TTInterphasesPro-DemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+body {
+    font-family: Arial;
+    background: #101010;
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 20px;
+    color: #00d9ff;
+}
+
+#timeline {
+    width: 80%;
+    margin: 20px auto;
+}
+
+.evento {
+    background: #202020;
+    border-left: 5px solid #00d9ff;
+    padding: 15px;
+    margin: 15px 0;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.evento:hover {
+    background: #292929;
+    transform: scale(1.01);
+}
+
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+}
+
+.modal-content {
+    background: #181818;
+    margin: 10% auto;
+    padding: 20px;
+    width: 60%;
+    color: white;
+    border-radius: 10px;
+}
+
+#modal-img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+#fechar {
+    float: right;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+h1, h2, h3,
+.card .title,
+.panel h3,
+#detailTitle {
+    font-family: "TT Interphases Pro DemiBold" !important;
+    letter-spacing: -0.2px;
+}
+
+.card .year {
+    font-family: "TT Interphases Pro DemiBold" !important;
+    font-size: 16px;
+}
+
+.btn.primary,
+.btn#btnPlayPause,
+.btn#btnNarr,
+.btn#btnMode,
+.btn#btnTheme {
+    font-family: "TT Interphases Pro DemiBold" !important;
+}
+.card .summary,
+.panel .text,
+#detailText,
+footer {
+    font-family: "TT Interphases Pro Regular" !important;
+    opacity: 0.92;
+}
+
+.btn {
+    font-family: "TT Interphases Pro Regular" !important;
+}
+
+label {
+    font-family: "TT Interphases Pro Regular" !important;
+    letter-spacing: 0.1px;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 90%;
+    }
+}

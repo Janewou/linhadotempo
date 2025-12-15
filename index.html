@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Linha do Tempo — Resistência Negra</title>
+<style>
+:root{
+  --bg:#070707;--card:#151515;--accent:#ffcc00;--muted:#9aa0a6;--glass:rgba(255,255,255,0.03);
+  --zoom:1;--side-width:420px;--side-collapsed:56px;
+}
+*{
+  box-sizing:border-box;
+  font-family: "TT Interphases Pro Demi Bold", Arial, Helvetica, sans-serif !important;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:#fff}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg,#060606,#0b0b0b);z-index:2000}
+header h1{font-size:18px;margin:0;color:var(--accent)}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#000;border:none;padding:8px 12px;font-weight:700}
+.content{display:flex;flex:1;gap:18px;padding:18px;min-height:calc(100vh - 120px)}
+.timeline-wrap{flex:1;display:flex;flex-direction:column;gap:12px;overflow:hidden;min-width:0}
+.toolbar{display:flex;gap:10px;align-items:center;padding-bottom:8px}
+.timeline{flex:1;display:flex;gap:18px;padding:12px;border-radius:12px;overflow:auto;scroll-behavior:smooth;transform-origin:center left;transform:scale(var(--zoom));align-items:flex-start;justify-content:center}
+.timeline.vertical{flex-direction:column;align-items:stretch;justify-content:flex-start;padding-bottom:12px}
+.timeline.horizontal{flex-direction:row;align-items:flex-start;padding-bottom:28px;justify-content:center}
+.card{min-width:320px;max-width:360px;background:var(--card);border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;transform-style:preserve-3d;transition:transform .25s, box-shadow .25s}
+.card:hover{transform:translateY(-8px);box-shadow:0 20px 40px rgba(0,0,0,0.6)}
+.card .year{color:var(--accent);font-weight:700}
+.card .title{font-size:18px;margin:8px 0}
+.card .summary{color:var(--muted);font-size:13px}
+.card .content{display:none;margin-top:12px;color:#ddd;line-height:1.6}
+.card img{width:100%;border-radius:10px;margin-top:10px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+.side-container{width:var(--side-width);flex-shrink:0;display:flex;flex-direction:column;gap:12px;transition:width .28s ease;position:relative;}
+.side{background:linear-gradient(180deg,#0f0f10,#0b0b0c);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);height:calc(100% - 28px);overflow:auto}
+.side.collapsed{width:var(--side-collapsed)}
+.side.collapsed .side{padding:8px}
+.side-toggle{position:absolute;left:-28px;top:18px;width:28px;height:40px;background:linear-gradient(180deg,#0b0b0b,#141414);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.04)}
+.side-toggle span{display:block;transform:rotate(0deg);transition:transform .2s}
+.side.collapsed .side-toggle span{transform:rotate(180deg)}
+.panel h3{margin:0 0 8px 0;color:var(--accent)}
+.panel .text{color:#ddd;max-height:360px;overflow:auto;line-height:1.5;padding-right:6px}
+.minimap{position:fixed;right:18px;bottom:18px;background:rgba(0,0,0,0.45);padding:8px;border-radius:12px;display:flex;gap:8px;z-index:2000}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.15);cursor:pointer;transition:transform .18s, background .18s}
+.dot.active{background:var(--accent);transform:scale(1.25)}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+#intro{position:fixed;inset:0;background:#000 url('assets/img/img_intro.jpg') center/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3000}
+#intro h2{font-size:40px;color:var(--accent);margin:0 0 12px 0;animation:pop 1.6s ease-in-out infinite}
+#intro p{color:#ddd;max-width:720px;text-align:center}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+.zoomControl{display:flex;gap:8px;align-items:center}
+.zoomControl input{width:140px}
+footer{padding:10px 20px;color:var(--muted);font-size:12px;border-top:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg,#070707,#060606)}
+/* scrollbar */
+.timeline::-webkit-scrollbar, .side::-webkit-scrollbar, .panel .text::-webkit-scrollbar {height:10px;width:10px}
+.timeline::-webkit-scrollbar-thumb, .side::-webkit-scrollbar-thumb, .panel .text::-webkit-scrollbar-thumb {background:rgba(255,255,255,0.06);border-radius:10px}
+.timeline::-webkit-scrollbar-track{background:transparent;border-radius:10px}
+
+/* claro theme */
+body.claro{--bg:#f7f7f8;color:#0b0b0b}
+body.claro header{background:linear-gradient(180deg,#fff,#f4f4f6)}
+body.claro .card{background:#fff;color:#111;border:1px solid rgba(0,0,0,0.06)}
+body.claro .panel{background:linear-gradient(180deg,#fff,#fafafa);color:#111}
+
+/* responsive */
+@media(max-width:1100px){
+  :root{--side-width:360px}
+  .card{min-width:280px}
+}
+@media(max-width:900px){
+  .content{padding:12px;flex-direction:column}
+  .side-container{position:fixed;right:12px;top:70px;height:calc(100% - 90px);width:calc(100% - 40px);max-width:420px;z-index:2500;transition:transform .28s;transform:translateX(110%);}
+  .side-container.open{transform:translateX(0)}
+  .side-container .side-toggle{left:-46px;top:12px}
+  .minimap{display:none}
+  .timeline{padding:8px}
+}
+@media(max-width:520px){
+  header h1{font-size:15px}
+  .btn{padding:6px 8px;font-size:13px}
+  .card{min-width:220px;max-width:260px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>✊ Linha do Tempo — Resistência Negra</h1>
+  <div class="controls">
+    <button class="btn" id="btnTheme">🌙 Tema</button>
+    <button class="btn" id="btnMode">Horizontal</button>
+
+    <div class="panel" style="padding:6px 8px;border-radius:8px;display:flex;gap:8px;align-items:center">
+      <label style="color:var(--muted);font-size:13px">Voz</label>
+      <select id="voiceSelect" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.04);padding:6px;border-radius:6px"></select>
+    </div>
+
+    <div class="panel" style="padding:6px 8px;border-radius:8px;display:flex;gap:8px;align-items:center">
+      <label style="color:var(--muted);font-size:13px">Rate</label>
+      <input id="rate" type="range" min="0.6" max="1.4" step="0.05" value="1">
+      <label style="color:var(--muted);font-size:13px">Pitch</label>
+      <input id="pitch" type="range" min="0.6" max="1.4" step="0.05" value="1">
+    </div>
+
+    <div class="zoomControl panel" style="padding:6px 10px;border-radius:10px">
+      <label style="color:var(--muted);font-size:13px">Zoom</label>
+      <input id="zoomSlider" type="range" min="0.6" max="1.6" step="0.01" value="1">
+    </div>
+
+    <button class="btn" id="btnNarr">Narração: OFF</button>
+    <button class="btn primary" id="btnPlayPause">⏯️ Trilha: PAUSAR</button>
+    <button class="btn" id="btnSideOpen" title="Abrir/Fechar painel">🞬</button>
+  </div>
+</header>
+
+<div class="content">
+  <div class="timeline-wrap">
+    <div class="toolbar">
+      <div style="color:var(--muted)">Clique em um cartão para abrir o conteúdo completo. Use ← → / Esc. Em "Voz" escolha a voz do sistema.</div>
+    </div>
+    <div id="timeline" class="timeline horizontal" role="list" tabindex="0"></div>
+  </div>
+
+  <div class="side-container" id="sideContainer" aria-hidden="false">
+    <div class="side-toggle" id="sideToggle"><span>◀</span></div>
+    <aside class="side" id="sidePanel">
+      <div class="panel">
+        <h3>Detalhes do Evento</h3>
+        <div id="detailTitle" style="font-weight:700"></div>
+        <div id="detailYear" style="color:var(--muted);margin-bottom:8px"></div>
+        <div id="detailText" class="text"></div>
+      </div>
+
+      <div class="panel" style="margin-top:10px">
+        <h3>Controles de Áudio</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label>Volume trilha</label>
+          <input id="volMusic" type="range" min="0" max="1" step="0.01" value="0.45" style="flex:1">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <label>Volume narração</label>
+          <input id="volNarr" type="range" min="0" max="1" step="0.01" value="1" style="flex:1">
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:10px">
+        <h3>Atalhos</h3>
+        <div style="color:var(--muted);font-size:13px">← anterior · → próximo · Esc fechar · N liga/desliga narração · T abre/fecha painel</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer>Fonte: roteiro fornecido • Conteúdo educativo • App local</footer>
+
+<div class="minimap" id="minimap" aria-hidden="true"></div>
+<canvas id="particles"></canvas>
+<div id="intro"><h2>✊ História e Resistência</h2><p>Carregando — aguarde um segundo.</p></div>
+
+<audio id="sClick" src="assets/sounds/click.mp3"></audio>
+<audio id="sOpen" src="assets/sounds/open.mp3"></audio>
+<audio id="sTrans" src="assets/sounds/transition.mp3"></audio>
+<audio id="sTrilha" src="assets/sounds/trilha.mp3" loop></audio>
+
+<script>
+/* ====== Dados (mantive sua lista original) ====== */
+const events = [
+{ id:0, year:"1500", title:"Início da escravidão no Brasil", summary:"Tráfico e colonialismo", text:"A colonização portuguesa inicia um sistema de exploração e tráfico transatlântico de africanos. Milhões foram trazidos à força para trabalhar nas lavouras e nas minas, estabelecendo as bases da desigualdade racial que perdura.", img:"assets/img/img1_inicio_escravidao.jpg" },
+{ id:1, year:"1600–1695", title:"Zumbi dos Palmares", summary:"Resistência quilombola", text:"Zumbi torna-se símbolo da resistência negra e da luta pelos quilombos — territórios de liberdade formados por pessoas fugidas da escravidão.", img:"assets/img/img9_zumbi.jpg" },
+{ id:2, year:"1888", title:"Abolição — Lei Áurea", summary:"Liberdade sem reparação", text:"A assinatura da Lei Áurea libertou legalmente os escravizados, porém sem garantias materiais, terra ou políticas de reparação; inaugurando um período de exclusão estrutural e pobreza para a maioria negra.", img:"assets/img/img2_lei_aurea.jpg" },
+{ id:3, year:"1930–1970", title:"Criminalização cultural", summary:"Capoeira e terreiros", text:"Capoeira e religiões de matriz africana sofreram criminalização e perseguição; ao mesmo tempo, a resistência cultural cresceu com manifestações artísticas e politizadas.", img:"assets/img/img3_capoeira_candomble.jpg" },
+{ id:4, year:"1978", title:"Movimento Negro Unificado (MNU)", summary:"Organização e luta", text:"O MNU marca a modernização do ativismo negro no Brasil, articulando pautas de combate ao racismo institucional, à violência e exigindo políticas públicas.", img:"assets/img/img4_mnu.jpg" },
+{ id:5, year:"1963", title:"Marcha em Washington (EUA)", summary:"Direitos civis em escala", text:"A Marcha de 1963 foi um marco internacional pelos direitos civis, com a icônica fala 'I Have a Dream', e impulsionou debates sobre igualdade e legislação nos EUA.", img:"assets/img/img8_march_washington.jpg" },
+{ id:6, year:"1966", title:"Panteras Negras (EUA)", summary:"Autodefesa e programas", text:"Huey Newton e Bobby Seale fundaram o Partido dos Panteras Negras para Autodefesa em Oakland. O partido combinou patrulhas contra abusos policiais, programa de 10 pontos e ampla atuação comunitária (cafés da manhã, clínicas).", img:"assets/img/pantera_1966.jpg" },
+{ id:7, year:"1968–1973", title:"COINTELPRO e repressão", summary:"Infiltração e sabotagem", text:"O FBI lançou a Operação COINTELPRO para infiltrar, dividir e desarticular movimentos negros e de esquerda; muitos líderes foram perseguidos, presos ou assassinados.", img:"assets/img/img6_fbi_cointelpro.jpg" },
+{ id:8, year:"1969", title:"Fred Hampton assassinado", summary:"Repressão letal", text:"Fred Hampton, líder jovem e articulador de coalizões em Chicago, foi assassinado em uma operação policial coordenada com o FBI, tornando-se símbolo da repressão estatal.", img:"assets/img/img7_fred_hampton.jpg" },
+{ id:9, year:"2013–2020", title:"Black Lives Matter", summary:"Era digital de resistência", text:"O movimento BLM usa redes sociais para denunciar violações, organizar protestos e articular solidariedade internacional, tornando a luta visível em escala global.", img:"assets/img/img5_blm_redes.jpg" },
+{ id:10, year:"2020", title:"George Floyd", summary:"Protestos globais", text:"O assassinato de George Floyd em 2020 desencadeou protestos massivos ao redor do mundo, reabrindo debates sobre violência policial, memória e políticas de reparação.", img:"assets/img/img6_george_floyd.jpg" },
+{ id:11, year:"2021", title:"Marielle Franco", summary:"Voz brasileira", text:"Marielle Franco tornou-se símbolo da luta contra violência, racismo e pela democracia; seu assassinato mobilizou demandas por justiça e proteção de lideranças.", img:"assets/img/img7_marielle.jpg" },
+{ id:12, year:"Hoje", title:"Legado e continuação", summary:"Projetos e memória", text:"O ativismo negro segue vivo em múltiplas frentes: educação, cultura, política, memória e organização comunitária. As experiências históricas informam ações contemporâneas e políticas públicas.", img:"assets/img/img10_quilombos.jpg" }
+];
+
+/* ====== Elementos UI ====== */
+const timelineEl = document.getElementById('timeline');
+const minimap = document.getElementById('minimap');
+const detailTitle = document.getElementById('detailTitle');
+const detailYear = document.getElementById('detailYear');
+const detailText = document.getElementById('detailText');
+const btnMode = document.getElementById('btnMode');
+const btnTheme = document.getElementById('btnTheme');
+const btnNarr = document.getElementById('btnNarr');
+const btnPlayPause = document.getElementById('btnPlayPause');
+const btnSideOpen = document.getElementById('btnSideOpen');
+const sideContainer = document.getElementById('sideContainer');
+const sideToggle = document.getElementById('sideToggle');
+const sidePanel = document.getElementById('sidePanel');
+
+const sClick = document.getElementById('sClick');
+const sOpen = document.getElementById('sOpen');
+const sTrans = document.getElementById('sTrans');
+const sTrilha = document.getElementById('sTrilha');
+const volMusic = document.getElementById('volMusic');
+const volNarr = document.getElementById('volNarr');
+const zoomSlider = document.getElementById('zoomSlider');
+const voiceSelect = document.getElementById('voiceSelect');
+const rateControl = document.getElementById('rate');
+const pitchControl = document.getElementById('pitch');
+
+let mode = 'horizontal';
+let narrEnabled = false;
+let currentIndex = 0;
+sTrilha.volume = parseFloat(volMusic.value || 0.45);
+volMusic.addEventListener('input', ()=> sTrilha.volume = volMusic.value);
+zoomSlider.addEventListener('input', ()=> { document.documentElement.style.setProperty('--zoom', zoomSlider.value); });
+
+/* ====== Build UI ====== */
+function buildUI(){
+  timelineEl.className = 'timeline '+ (mode==='horizontal' ? 'horizontal' : 'vertical');
+  timelineEl.innerHTML = '';
+  minimap.innerHTML = '';
+  events.forEach((ev, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.idx = idx;
+    card.innerHTML = '<div class="year">'+ev.year+'</div><div class="title">'+ev.title+'</div><div class="summary">'+ev.summary+'</div><div class="content"><div class="text">'+ev.text+'</div><img src="'+ev.img+'" alt=""></div>';
+    // click
+    card.addEventListener('click', (e)=>{ e.stopPropagation(); openCard(idx, card); });
+    // gentle tilt effect (less sensitive)
+    card.addEventListener('mousemove', (m)=>{ const r = card.getBoundingClientRect(); const mx = m.clientX - r.left; const my = m.clientY - r.top; const rx = (my - r.height/2)/(r.height/2); const ry = (mx - r.width/2)/(r.width/2); const tiltX = (-rx*4).toFixed(2); const tiltY = (ry*4).toFixed(2); card.style.transform = 'perspective(900px) translateZ(6px) rotateX('+tiltX+'deg) rotateY('+ tiltY +'deg) scale(1.01)'; });
+    card.addEventListener('mouseleave', ()=>{ card.style.transform = ''; });
+    timelineEl.appendChild(card);
+
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dot.title = ev.title;
+    dot.addEventListener('click', (evClick)=>{ evClick.stopPropagation(); const node = document.querySelector('.card[data-idx="'+idx+'"]'); if(node) node.scrollIntoView({behavior:'smooth', block:'center', inline:'center'}); highlightDot(idx); openCard(idx, node); });
+    minimap.appendChild(dot);
+  });
+  // center first element on load
+  requestAnimationFrame(()=> {
+    const first = document.querySelector('.card[data-idx="0"]');
+    if(first) first.scrollIntoView({behavior:'auto', block:'center', inline:'center'});
+    highlightDot(0);
+  });
+}
+
+function highlightDot(idx){
+  minimap.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===idx));
+}
+
+/* ====== Speech setup ====== */
+let synth = window.speechSynthesis || null;
+let currentUtter = null;
+
+function populateVoices(){
+  if(!synth) return;
+  let voices = synth.getVoices() || [];
+  voiceSelect.innerHTML = '';
+  voices.forEach((v)=>{ const opt = document.createElement('option'); opt.value = v.name; opt.textContent = v.name + ' ('+v.lang+')'; voiceSelect.appendChild(opt); });
+  if(voices.length) voiceSelect.selectedIndex = 0;
+}
+populateVoices();
+if(synth) synth.onvoiceschanged = populateVoices;
+
+function speakText(text){
+  stopSpeech();
+  if(!narrEnabled || !synth) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  const selected = voiceSelect.value;
+  const voices = synth.getVoices() || [];
+  const found = voices.find(v=>v.name === selected);
+  if(found) utter.voice = found;
+  utter.lang = (found && found.lang) ? found.lang : 'pt-BR';
+  utter.rate = parseFloat(rateControl.value || 1);
+  utter.pitch = parseFloat(pitchControl.value || 1);
+  utter.volume = parseFloat(volNarr.value || 1);
+  currentUtter = utter;
+  try{ synth.speak(utter); } catch(e){ console.warn('Speech failed', e); }
+}
+function stopSpeech(){ if(synth && synth.speaking) synth.cancel(); currentUtter = null; }
+
+/* ====== Open / Close Card ====== */
+function openCard(idx, node){
+  sClick.currentTime = 0; sClick.play().catch(()=>{});
+  const content = node.querySelector('.content');
+  const isOpen = content.style.display === 'block';
+  document.querySelectorAll('.card .content').forEach(c=> c.style.display = 'none');
+  if(!isOpen){
+    content.style.display = 'block';
+    setTimeout(()=> sOpen.play().catch(()=>{}), 80);
+    showDetail(idx);
+    node.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+    currentIndex = idx;
+    highlightDot(idx);
+    speakText(events[idx].text);
+  } else {
+    content.style.display = 'none';
+    clearDetail();
+    stopSpeech();
+  }
+}
+
+function showDetail(idx){
+  const ev = events[idx];
+  detailTitle.textContent = ev.title;
+  detailYear.textContent = ev.year;
+  detailText.textContent = ev.text;
+}
+function clearDetail(){ detailTitle.textContent=''; detailYear.textContent=''; detailText.textContent=''; }
+
+/* ====== Keyboard nav ====== */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowLeft'){ navigate(-1); }
+  if(e.key === 'ArrowRight'){ navigate(1); }
+  if(e.key === 'Escape'){ document.querySelectorAll('.card .content').forEach(c=> c.style.display='none'); clearDetail(); stopSpeech(); document.documentElement.style.setProperty('--zoom', 1); zoomSlider.value = 1; }
+  if(e.key.toLowerCase() === 'n'){ toggleNarr(); }
+  if(e.key.toLowerCase() === 't'){ toggleSide(); }
+});
+
+function navigate(dir){
+  let next = (currentIndex + dir + events.length) % events.length;
+  const node = document.querySelector('.card[data-idx="'+next+'"]');
+  if(node) openCard(next, node);
+}
+
+/* ====== Mode toggle ====== */
+btnMode.addEventListener('click', ()=>{
+  mode = (mode==='horizontal') ? 'vertical' : 'horizontal';
+  btnMode.textContent = mode==='horizontal' ? 'Horizontal' : 'Vertical';
+  // when vertical, center content and enable vertical scroll
+  buildUI();
+  // small improvement: if vertical, scroll to top
+  if(mode === 'vertical'){
+    timelineEl.scrollTop = 0;
+  } else {
+    timelineEl.scrollLeft = 0;
+  }
+});
+
+/* ====== Theme ====== */
+btnTheme.addEventListener('click', ()=>{ document.body.classList.toggle('claro'); });
+
+/* ====== Narration ====== */
+btnNarr.addEventListener('click', ()=> toggleNarr());
+function toggleNarr(){ narrEnabled = !narrEnabled; btnNarr.textContent = narrEnabled ? 'Narração: ON' : 'Narração: OFF'; if(!narrEnabled) stopSpeech(); }
+
+/* ====== Play/Pause track ====== */
+btnPlayPause.addEventListener('click', ()=>{ if(sTrilha.paused){ sTrilha.play(); btnPlayPause.textContent='⏯️ Trilha: PAUSAR'; } else { sTrilha.pause(); btnPlayPause.textContent='⏯️ Trilha: TOCAR'; } });
+
+/* ====== Side panel open/close ====== */
+let sideCollapsed = false;
+function toggleSide(force){
+  // on small screens, treat as drawer
+  const mobile = window.matchMedia('(max-width:900px)').matches;
+  if(mobile){
+    sideContainer.classList.toggle('open', force === undefined ? !sideContainer.classList.contains('open') : !!force);
+    sideContainer.setAttribute('aria-hidden', !sideContainer.classList.contains('open'));
+    return;
+  }
+  sideCollapsed = (typeof force === 'boolean') ? force : !sideCollapsed;
+  if(sideCollapsed){
+    sideContainer.style.width = 'var(--side-collapsed)';
+    sideContainer.classList.add('collapsed');
+    sidePanel.style.opacity = '0';
+    setTimeout(()=> sidePanel.style.display = 'none', 200);
+  } else {
+    sidePanel.style.display = 'block';
+    setTimeout(()=> sidePanel.style.opacity = '1', 10);
+    sideContainer.style.width = 'var(--side-width)';
+    sideContainer.classList.remove('collapsed');
+  }
+}
+sideToggle.addEventListener('click', ()=> toggleSide());
+btnSideOpen.addEventListener('click', ()=> toggleSide());
+
+/* also close drawer when clicking outside on mobile */
+document.addEventListener('click', (ev)=>{
+  const mobile = window.matchMedia('(max-width:900px)').matches;
+  if(mobile && sideContainer.classList.contains('open')){
+    if(!sideContainer.contains(ev.target) && !ev.target.matches('#btnSideOpen')){
+      toggleSide(false);
+    }
+  }
+});
+
+/* ====== Particles (kept but tuned) ====== */
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = window.innerWidth;
+let H = canvas.height = window.innerHeight;
+const particles = [];
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+for(let i=0;i<40;i++){ particles.push({x:Math.random()*W,y:Math.random()*H+H,vy: - (0.6+Math.random()*1.0),r:1+Math.random()*3,alpha:0.06+Math.random()*0.6}); }
+function draw(){ ctx.clearRect(0,0,W,H); particles.forEach(p=>{ p.x += Math.sin(p.y*0.002)*0.35; p.y += p.vy; if(p.y < -20){ p.y = H + Math.random()*60; p.x = Math.random()*W; } ctx.globalAlpha = p.alpha; ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); }); requestAnimationFrame(draw); }
+draw();
+
+/* ====== Init ====== */
+function init(){ buildUI(); sTrilha.play().catch(()=>{}); sTrans.play().catch(()=>{}); setTimeout(()=>{ document.getElementById('intro').style.display='none'; }, 1200); }
+init();
+
+/* accessibility focus */
+timelineEl.addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ navigate(1); e.preventDefault(); }
+  if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ navigate(-1); e.preventDefault(); }
+});
+</script>
+</body>
+</html>

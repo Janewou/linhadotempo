@@ -1,0 +1,18 @@
+{
+  "name": "linha-do-tempo",
+  "version": "1.1.0",
+  "description": "Aplicativo Linha do Tempo — Resistência Negra (Electron)",
+  "main": "main.js",
+  "author": "Janewou",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "electron-packager . linha-do-tempo --overwrite --asar --platform=win32 --arch=x64 --icon=assets/icon/blm.ico --out=dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "28.2.3",
+    "electron-packager": "^17.1.2"
+  }
+}
